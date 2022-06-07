@@ -7,3 +7,6 @@
 [submodule "linux"]
 	path = linux-xlnx
 	url = https://github.com/Xilinx/linux-xlnx.git
+[submodule "embeddedsw"]
+	path = embeddedsw
+	url = https://github.com/Xilinx/embeddedsw.git
