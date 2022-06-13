@@ -1,16 +1,25 @@
-source scripts/env.sh
+#!/bin/bash
+
+# build u-boot
 cd $UBootPath
-make O=../build/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean
-make O=../build/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_virt_defconfig
-make O=../build/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- all -j16
-make O=../build/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j16
+make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j16
+make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j16
+make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- $DtsName.dtb -j16
 cd -
 
-# rebuild fsbl
-export FsblBuildDir=$(pwd)/build/fsbl
-rm -r build/fsbl
-mkdir -p build/fsbl
-xsct scripts/fsbl.tcl
+# build BOOT.BIN
+rm -rf $BuildDir/boot-bin && mkdir -p $BuildDir/boot-bin
+cp \
+    $BuildDir/fsbl/executable.elf \
+    $BuildDir/uboot/u-boot.elf \
+    $BuildDir/uboot/arch/arm/dts/$DtsName.dtb \
+    $BuildDir/boot-bin
 
-cp -f build/uboot/u-boot.elf build/fsbl/u-boot.elf
-cp -f build/uboot/arch/arm/dts/$(basename $UserDtsFile) build/fsbl/u-boot.dtb
+cd $BuildDir/boot-bin
+petalinux-package --boot --force -p $PetaLinuxPath \
+    --fsbl        executable.elf \
+    --u-boot      u-boot.elf \
+    --dtb         $DtsName.dtb \
+    --boot-device sd \
+    -o            BOOT.BIN
+cd -

@@ -1,12 +1,15 @@
-export XsaFile       = /home/peta-user/repo/spi-0607-vivado/ps_wrapper.xsa
-export XsaName       = $(basename $XsaFile)
-export PetaLinuxPath = /home/peta-user/repo/spi-0607
+export PetaLinuxPath=/home/peta-user/repo/spi/peta
+export UserXsaFile=/home/peta-user/repo/spi/vivado/ps_wrapper.xsa
+export UBootDtsFile=/home/peta-user/repo/xlnx-new/scripts/zynq-user-uboot.dts
+export KernelDtsFile=/home/peta-user/repo/xlnx-new/scripts/zynq-user-kernel.dts
 
-export SourcesDir     = /home/peta-user/repo/xlnx
-export DeviceTreePath = $SourcesDir/device-tree-xlnx
-export UBootPath      = $SourcesDir/u-boot-xlnx
-export KernelPath     = $SourcesDir/linux-xlnx
-export EmbeddedSW     = $SourcesDir/embeddedsw
+export DtsName=zynq-user
+export XsaName=$(basename $UserXsaFile .xsa)
+export XsaFile=$(pwd)/build/hw/$XsaName.xsa
 
-export UserDtsFile = $SourcesDir/scripts
-export User
+export SourcesDir=/home/peta-user/repo/xlnx-new
+export DeviceTreePath=$SourcesDir/device-tree-xlnx
+export UBootPath=$SourcesDir/u-boot-xlnx
+export KernelPath=$SourcesDir/linux-xlnx
+export EmbeddedSW=$SourcesDir/embeddedsw
+export PATH=$PATH:$SourcesDir/scripts
