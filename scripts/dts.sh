@@ -4,10 +4,6 @@
 rm -rf $BuildDir/hw && mkdir -p $BuildDir/hw
 cp $UserXsaFile $XsaFile
 
-# copy xsa file
-rm -rf build/hw && mkdir -p build/hw
-cp $UserXsaFile $XsaFile
-
 # rebuild dts
 rm -rf $BuildDir/dts && mkdir -p $BuildDir/dts
 xsct $SourcesDir/scripts/dts.tcl
@@ -16,7 +12,14 @@ xsct $SourcesDir/scripts/dts.tcl
 rm -rf $BuildDir/fsbl && mkdir -p $BuildDir/fsbl
 xsct $SourcesDir/scripts/fsbl.tcl
 
-cp -rf $BuildDir/dts/*  $UBootDtsDir
-cp -rf $BuildDir/dts/*  $KernelDtsDir
-cp -f  $UBootDtsFile    $UBootDtsDir/$DtsName.dts
-cp -f  $KernelDtsFile   $KernelDtsDir/$DtsName.dts
+# copy dts files to dts source directory
+cp -rfv \
+    $BuildDir/dts/* \
+    $SourcesDir/scripts/zynq-user-common.dtsi \
+    $SourcesDir/scripts/u-boot.dts \
+    $UBootDtsDir
+cp -rfv \
+    $BuildDir/dts/* \
+    $SourcesDir/scripts/zynq-user-common.dtsi \
+    $UserDtsFile \
+    $KernelDtsDir
