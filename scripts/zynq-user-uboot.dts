@@ -1,0 +1,6 @@
+/dts-v1/;
+#include "zynq-user-common.dtsi"
+
+/ {
+    compatible = "xlnx,zynq-7000", "xlnx,zynq-zc702";
+};

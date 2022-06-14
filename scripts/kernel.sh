@@ -1,7 +1,8 @@
 # build kernel
 cd $KernelPath
-make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zImage -j16 && \
-make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j16 && \
+make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- DEVICE_TREE=$DtsName zImage -j16 && \
+make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j16 || \
+exit
 cd -
 
 # put all products together
@@ -15,4 +16,5 @@ cp -v \
 cp -v \
     $BuildDir/boot-bin/BOOT.BIN \
     $BuildDir/kernel/arch/arm/boot/zImage \
+    $SourcesDir/scripts/boot.scr \
     $BuildDir/product

@@ -3,14 +3,14 @@
 #   SourcesDir, BuildDir
 
 # export PetaLinuxPath=$(realpath ../peta)
-
+# export BuildDir=$(realpath build)
 # export UserXsaFile=$(realpath ../vivado/ps_wrapper.xsa)
+# export SourcesDir=/home/joker/repo/xlnx
+
 export XsaName=$(basename $UserXsaFile .xsa)
 export DtsName=$(basename $UserDtsFile .dts)
+export XsaFile=$BuildDir/hw/$XsaName.xsa
 
-# export AdditionDtsFiles=$(realpath zynq-user-common.dtsi)
-
-# export SourcesDir=/home/peta-user/repo/xlnx-new
 export DeviceTreePath=$SourcesDir/device-tree-xlnx
 export EmbeddedSW=$SourcesDir/embeddedsw
 export UBootPath=$SourcesDir/u-boot-xlnx
@@ -18,9 +18,6 @@ export KernelPath=$SourcesDir/linux-xlnx
 export UBootDtsDir=$UBootPath/arch/arm/dts
 export KernelDtsDir=$KernelPath/arch/arm/boot/dts
 export PATH=$PATH:$SourcesDir/scripts
-
-# export BuildDir=$(realpath build)
-export XsaFile=$BuildDir/hw/$XsaName.xsa
 
 echo "[Info] Setting up environment..."
 if  echo "-- PetaLinuxPath: $PetaLinuxPath" && \
@@ -56,6 +53,20 @@ umount-copy () {
     sudo umount -q $UBootDtsDir $KernelDtsDir
 }
 
+# copy dts files to dts source directory
+copy-dts () {
+    cp -rfv \
+        $BuildDir/dts/* \
+        $SourcesDir/scripts/zynq-user-common.dtsi \
+        $SourcesDir/scripts/zynq-user-uboot.dts \
+        $UBootDtsDir
+    cp -rfv \
+        $BuildDir/dts/* \
+        $SourcesDir/scripts/zynq-user-common.dtsi \
+        $UserDtsFile \
+        $KernelDtsDir
+}
+
 config-source () {
     case $1 in
     uboot)
@@ -65,7 +76,8 @@ config-source () {
         cd $UBootPath
         make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
         make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_virt_defconfig && \
-        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
+        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig || \
+        exit
         cd -
     ;;
     kernel)
@@ -75,7 +87,8 @@ config-source () {
         cd $KernelPath
         make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
         make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_defconfig && \
-        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
+        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig || \
+        exit
         cd -
     ;;
     esac
