@@ -3,4 +3,9 @@
 
 / {
     compatible = "xlnx,zynq-7000", "xlnx,zynq-zc702";
+
+    chosen {
+        bootargs = "earlycon";
+        stdout-path = "serial0:115200n8";
+    };
 };

@@ -1,16 +1,11 @@
 # input:
-#   PetaLinuxPath, UserXsaFile, UserDtsFile,
-#   SourcesDir, BuildDir
-
-# export PetaLinuxPath=$(realpath ../peta)
-# export BuildDir=$(realpath build)
-# export UserXsaFile=$(realpath ../vivado/ps_wrapper.xsa)
-# export SourcesDir=/home/joker/repo/xlnx
+#   UserXsaFile, UserDtsFile, SourcesDir, BuildDir
 
 export XsaName=$(basename $UserXsaFile .xsa)
 export DtsName=$(basename $UserDtsFile .dts)
 export XsaFile=$BuildDir/hw/$XsaName.xsa
 
+export SourcesDir=$(realpath $(dirname $0)/..)
 export DeviceTreePath=$SourcesDir/device-tree-xlnx
 export EmbeddedSW=$SourcesDir/embeddedsw
 export UBootPath=$SourcesDir/u-boot-xlnx
@@ -20,13 +15,9 @@ export KernelDtsDir=$KernelPath/arch/arm/boot/dts
 export PATH=$PATH:$SourcesDir/scripts
 
 echo "[Info] Setting up environment..."
-if  echo "-- PetaLinuxPath: $PetaLinuxPath" && \
-    [ -d $PetaLinuxPath ]                   && \
-    echo "-- UserXsaFile:   $UserXsaFile"   && \
-    [ -f $UserXsaFile ]                     && \
-    echo "-- SourcesDir:    $SourcesDir"    && \
-    [ -d $SourcesDir ]                      && \
-    echo "-- UserDtsFile:   $UserDtsFile"   && \
+if  echo "-- UserXsaFile: $UserXsaFile" && \
+    [ -f $UserXsaFile ]                 && \
+    echo "-- UserDtsFile: $UserDtsFile" && \
     [ -f $UserDtsFile ]
 then
     echo "[WARNING] Remember to mount-copy first."
@@ -40,13 +31,23 @@ fi
 #   $2: dts copy directory
 mount-copy-one () {
     sudo umount -q $1
+    mkdir -p $BuildDir
     rm -rf $2 && cp -rL $1 $2 && chmod -R a+rwX $2
     sudo mount --bind $2 $1
 }
 
 mount-copy () {
-    mount-copy-one $UBootDtsDir  $BuildDir/dts-uboot-copy && \
-    mount-copy-one $KernelDtsDir $BuildDir/dts-kernel-copy
+    case $1 in
+    uboot)
+        mount-copy-one $UBootDtsDir  $BuildDir/dts-uboot-copy
+    ;;
+    kernel)
+        mount-copy-one $KernelDtsDir $BuildDir/dts-kernel-copy
+    ;;
+    *)
+        mount-copy-one $UBootDtsDir  $BuildDir/dts-uboot-copy && \
+        mount-copy-one $KernelDtsDir $BuildDir/dts-kernel-copy
+    esac
 }
 
 umount-copy () {
@@ -55,16 +56,22 @@ umount-copy () {
 
 # copy dts files to dts source directory
 copy-dts () {
-    cp -rfv \
-        $BuildDir/dts/* \
-        $SourcesDir/scripts/zynq-user-common.dtsi \
-        $SourcesDir/scripts/zynq-user-uboot.dts \
-        $UBootDtsDir
-    cp -rfv \
-        $BuildDir/dts/* \
-        $SourcesDir/scripts/zynq-user-common.dtsi \
-        $UserDtsFile \
-        $KernelDtsDir
+    case $1 in
+    uboot)
+        sudo cp -rfv \
+            $BuildDir/dts/* \
+            $SourcesDir/scripts/zynq-user-common.dtsi \
+            $SourcesDir/scripts/zynq-user-uboot.dts \
+            $UBootDtsDir
+    ;;
+    kernel)
+        sudo cp -rfv \
+            $BuildDir/dts/* \
+            $SourcesDir/scripts/zynq-user-common.dtsi \
+            $UserDtsFile \
+            $KernelDtsDir
+    ;;
+    esac
 }
 
 config-source () {
@@ -75,9 +82,8 @@ config-source () {
 
         cd $UBootPath
         make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
-        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_virt_defconfig && \
-        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig || \
-        exit
+        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zynq_ares_7020_uboot_defconfig && \
+        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
         cd -
     ;;
     kernel)
@@ -87,8 +93,7 @@ config-source () {
         cd $KernelPath
         make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
         make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_defconfig && \
-        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig || \
-        exit
+        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
         cd -
     ;;
     esac
@@ -101,21 +106,36 @@ build-xlnx () {
     ;;
     all)
         dts.sh
+        copy-dts uboot && copy-dts kernel
         config-source uboot
         uboot.sh
         config-source kernel
         kernel.sh
         deploy.sh
     ;;
+    redo)
+        dts.sh
+        copy-dts uboot && copy-dts kernel
+        uboot.sh
+        kernel.sh
+        deploy.sh
+    ;;
     esac
 }
 
-# rebuild () {
-#     case $1 in
-#     dts)
-#         sudo umount -q $UBootDtsDir $KernelDtsDir
-#         rm -rf $BuildDir && mkdir -p $BuildDir
+dump-dtb () {
+    local name=$(basename $1 .dtb)
+    dtc -I dtb -O dts -o $name-dump.dts $1
+}
 
-#     ;;
-#     esac
-# }
+clean-git () {
+    cd $1
+    git restore .
+    git clean -f -d
+    cd -
+}
+
+clean-all-sources () {
+    clean-git $UBootPath
+    clean-git $KernelPath
+}

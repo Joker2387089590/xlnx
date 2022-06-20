@@ -6,11 +6,6 @@
 / {
     model = "Joker ZYNQ SPI Project";
 
-    chosen {
-        bootargs = "console=ttyPS0,115200 root=/dev/mmcblk0p2 rootwait rw rootfstype=ext4";
-        stdout-path = "serial0:115200n8";
-    };
-
     aliases {
         eth0    = &gem0;
         serial0 = &uart0;
@@ -19,7 +14,7 @@
 
     memory {
 		device_type = "memory";
-		reg = <0x0 0x20000000>;
+		reg = <0x0 0x40000000>;
 	};
 
     leds {
@@ -62,6 +57,18 @@
 			debounce-interval = <20>;
 		};
     };
+};
+
+&gem0 {
+    local-mac-address = [00 0a 35 00 1e 53];
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&sdhci0 {
+	u-boot,dm-pre-reloc;
 };
 
 &qspi {

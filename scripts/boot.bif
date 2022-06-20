@@ -1,7 +1,6 @@
 the_ROM_iamge: 
 {
-    [bootloader]executable.elf
+    [bootloader] executable.elf
     u-boot.elf
-    [load=0x1f00000]zynq-user-uboot.dtb
-    [offset=0x3000000, partition_owner=uboot]boot.scr
+    [load=0x00100000] zynq-user-uboot.dtb
 }

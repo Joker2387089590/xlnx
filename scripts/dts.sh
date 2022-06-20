@@ -11,5 +11,3 @@ xsct $SourcesDir/scripts/dts.tcl
 # rebuild fsbl
 rm -rf $BuildDir/fsbl && mkdir -p $BuildDir/fsbl
 xsct $SourcesDir/scripts/fsbl.tcl
-
-copy-dts
