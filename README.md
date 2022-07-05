@@ -2,17 +2,22 @@
 
 ## 前期准备
 1. Vivado 和 PetaLinux (版本 2022.1)
-2. clone 本仓库，获取编译脚本（在 `scripts/` 下），以及 Xilinx 的 `u-boot-xlnx`、`linux-xlnx`、`device-tree-xlnx`、`embeddedsw` 源码
-```shell
-# git 获取
-git clone http://139.9.88.116:3000/r/Joker/xlnx
 
-# 其中的 submodule 以及选取的 tag，其他版本可在 submodule 目录下用 git tags 查看
+2. clone 本仓库，获取编译脚本（在 `scripts/` 下），以及 Xilinx 的 `u-boot-xlnx`、`linux-xlnx`、`device-tree-xlnx`、`embeddedsw` 源码
+
+```shell
+git clone http://139.9.88.116:3000/r/Joker/xlnx
+```
+
+其中的 submodule 以及选取的 tag，其他版本可在 submodule 目录下用 git tags 查看
+
+```shell
 git submodule add -b xlnx_rebase_v5.15_LTS_2022.1_update1 https://github.com/Xilinx/linux-xlnx.git
 git submodule add -b xlnx_rebase_v2022.01_2022.1_update1  https://github.com/Xilinx/u-boot-xlnx.git
 git submodule add -b xilinx_v2022.1_update1               https://github.com/Xilinx/device-tree-xlnx.git
 git submodule add -b xilinx_v2022.1                       https://github.com/Xilinx/embeddedsw.git
 ```
+
 3. 一个 Vivado 的 ZYNQ PS 工程
 
 ---
@@ -39,6 +44,7 @@ $ build-xlnx dts  # 会在 $BuildDir 下生成 hw、dts、fsbl
 ```
 
 ### 4. 编写内核设备树文件 `$UserDtsFile`，参考 `$BuildDir/dts/system.dts`，但需做如下更改
+
 ```diff
 - include <zynq-7000.dtsi>
 - include <pcw.dtsi>
@@ -75,28 +81,35 @@ $ build-xlnx uboot
 
 ### 8. 配置 Linux 内核
 1. 执行命令
-    ```shell
-    $ config-source kernel # 会调用 VSCode 打开 Makefile
-    > [Info] Press Enter to continue...
-    ```
+
+```shell
+$ config-source kernel # 会调用 VSCode 打开 Makefile
+> [Info] Press Enter to continue...
+```
+
 2. 修改 Makefile，添加 `$(内核设备树文件名).dtb` 到 `dtb-$(CONFIG_ARCH_ZYNQ)` 中
-    ```diff
-    dtb-$(CONFIG_ARCH_ZYNQ) += \
-        bitmain-antminer-s9.dtb \
-        ...
-    -   zynq-zybo-z7.dtb
-    +   zynq-zybo-z7.dtb \
-    +   $(内核设备树文件名).dtb
-    ```
+
+```diff
+dtb-$(CONFIG_ARCH_ZYNQ) += \
+    bitmain-antminer-s9.dtb \
+    ...
+-   zynq-zybo-z7.dtb
++   zynq-zybo-z7.dtb \
++   $(内核设备树文件名).dtb
+```
+
 3. 修改好以后，回车继续，会打开 `menuconfig`，可手动修改配置
 
 ### 9. 编译 Linux 内核
+
 ```shell
 $ build-xlnx kernel
 ```
+
 所有最终产物会复制到 `$BuildDir/product`
 
 ### 10. 格式化 SD 卡，然后复制 `$BuildDir/product` 下所有文件到 SD 卡的 FAT 分区
+
 ```shell
 $ format-sdc /dev/$(sd 卡设备)
 ```
