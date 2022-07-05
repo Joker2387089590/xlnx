@@ -1,0 +1,7 @@
+label: dos
+label-id: 0x9ecf546b
+device: /dev/sdc
+unit: sectors
+
+/dev/sdc1 : start=        2048, size=     2097152, type=c, bootable
+/dev/sdc2 : start=     2099200, size=   247571456, type=83

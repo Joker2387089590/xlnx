@@ -6,8 +6,8 @@ cp -v $UserXsaFile $XsaFile
 
 # rebuild dts
 rm -rf $BuildDir/dts && mkdir -p $BuildDir/dts
-xsct $SourcesDir/scripts/dts.tcl
+xsct $SourcesDir/scripts/boot/dts.tcl
 
 # rebuild fsbl
 rm -rf $BuildDir/fsbl && mkdir -p $BuildDir/fsbl
-xsct $SourcesDir/scripts/fsbl.tcl
+xsct $SourcesDir/scripts/boot/fsbl.tcl

@@ -1,20 +1,19 @@
 # 通用 U-Boot 脚本
 
 ## 前期准备
-1. Vivado 2022.1 和 PetaLinux 2022.1
+1. Vivado 和 PetaLinux (版本 2022.1)
 2. clone 本仓库，获取编译脚本（在 `scripts/` 下），以及 Xilinx 的 `u-boot-xlnx`、`linux-xlnx`、`device-tree-xlnx`、`embeddedsw` 源码
-    ```bash
-    # git 获取
-    git clone http://139.9.88.116:3000/r/Joker/xlnx
+```shell
+# git 获取
+git clone http://139.9.88.116:3000/r/Joker/xlnx
 
-    # 其中的 submodule 以及选取的 tag，其他版本可在 submodule 目录下用 git tags 查看
-    git submodule add -b xlnx_rebase_v5.15_LTS_2022.1_update1 https://github.com/Xilinx/linux-xlnx.git
-    git submodule add -b xlnx_rebase_v2022.01_2022.1_update1  https://github.com/Xilinx/u-boot-xlnx.git
-    git submodule add -b xilinx_v2022.1_update1               https://github.com/Xilinx/device-tree-xlnx.git
-    git submodule add -b xilinx_v2022.1                       https://github.com/Xilinx/embeddedsw.git
-    ```
+# 其中的 submodule 以及选取的 tag，其他版本可在 submodule 目录下用 git tags 查看
+git submodule add -b xlnx_rebase_v5.15_LTS_2022.1_update1 https://github.com/Xilinx/linux-xlnx.git
+git submodule add -b xlnx_rebase_v2022.01_2022.1_update1  https://github.com/Xilinx/u-boot-xlnx.git
+git submodule add -b xilinx_v2022.1_update1               https://github.com/Xilinx/device-tree-xlnx.git
+git submodule add -b xilinx_v2022.1                       https://github.com/Xilinx/embeddedsw.git
+```
 3. 一个 Vivado 的 ZYNQ PS 工程
-4. SD 卡分区、格式化、添加根文件系统
 
 ---
 
@@ -24,12 +23,12 @@
 2. 执行 `File > Export... > Export Hardware`，选择 `Include Bitstream`
 
 ### 2. 编写 input.sh 文件
-```bash
-#!/bin/bash
+```shell
 export UserXsaFile=$(导出的 xsa 文件路径)
 export UserDtsFile=$(内核的设备树文件)
+export SourcesDir=$(编译脚本仓库所在目录)
 export BuildDir=$(构建目录，需绝对路径)
-source $(编译脚本仓库)/scripts/env.sh
+source $SourcesDir/scripts/env.sh
 ```
 
 ### 3. 编译 DTS 和 FSBL
@@ -70,9 +69,9 @@ $ copy-dts uboot && copy-dts kernel
 
 ### 7. 编译 U-Boot 和 BOOT.BIN
 ```shell
-# 期间会在 $BuildDir/peta 创建并配置一个 petalinux 项目，弹出配置界面时退出即可
 $ build-xlnx uboot
 ```
+期间会在 $BuildDir/peta 创建并配置一个 petalinux 项目，弹出配置界面时退出即可
 
 ### 8. 配置 Linux 内核
 1. 执行命令
@@ -97,7 +96,10 @@ $ build-xlnx kernel
 ```
 所有最终产物会复制到 `$BuildDir/product`
 
-### 10. 复制 `$BuildDir/product` 下所有文件到 SD 卡的 FAT 分区
+### 10. 格式化 SD 卡，然后复制 `$BuildDir/product` 下所有文件到 SD 卡的 FAT 分区
+```shell
+$ format-sdc /dev/$(sd 卡设备)
+```
 
 ---
 
@@ -137,11 +139,21 @@ $ build-xlnx kernel
 * 复制 dtb 文件时，需要重命名为 `system.dtb`
 
 ## 部分 Bash 命令参考
+
 ```shell
-# 获取文件名
-$ basename ${dir/file_with.suffix} .suffix
+$ basename dir/file_with.suffix .suffix # 获取文件名
 > file_with
 
-# 获取绝对路径
-realpath 
+$ realpath ../.. # 获取绝对路径
+> /absolute/path
+
+# 条件语句（方括号周围的空格是必须的）
+$ [ -f if_file_exist ] # 文件是否存在
+$ [ -d if_dir_exist ] # 目录是否存在
+
+$ some-func () { # 定义一个脚本函数
+      echo $1 # $1 表示第一个参数
+      echo $2 # $2 表示第二个参数，以此类推
+      local var; # 函数内的局部变量
+  } 
 ```

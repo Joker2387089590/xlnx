@@ -1,71 +1,63 @@
-# input:
-#   UserXsaFile, UserDtsFile, SourcesDir, BuildDir
+# check input
+echo "[INFO] Setting up environment..."
+if  echo "--- UserXsaFile: $UserXsaFile" && \
+    [ -f $UserXsaFile ]                  && \
+    echo "--- UserDtsFile: $UserDtsFile" && \
+    [ -f $UserDtsFile ]                  && \
+    echo "---  SourcesDir: $SourcesDir"  && \
+    [ -d $SourcesDir ]
+then
+    echo "[INFO] Remember to source PetaLinux's settings.sh"
+else
+    echo "[ERROR]          ~~~~~~~~~~~~    Invalid input!!!"
+    return 255
+fi
 
+# file name
 export XsaName=$(basename $UserXsaFile .xsa)
 export DtsName=$(basename $UserDtsFile .dts)
 export XsaFile=$BuildDir/hw/$XsaName.xsa
 
-export SourcesDir=$(realpath $(dirname $0)/..)
+# sources path
 export DeviceTreePath=$SourcesDir/device-tree-xlnx
 export EmbeddedSW=$SourcesDir/embeddedsw
 export UBootPath=$SourcesDir/u-boot-xlnx
 export KernelPath=$SourcesDir/linux-xlnx
 export UBootDtsDir=$UBootPath/arch/arm/dts
 export KernelDtsDir=$KernelPath/arch/arm/boot/dts
+
+# add scripts to PATH so that we can call them directly by 'xxx.sh'
 export PATH=$PATH:$SourcesDir/scripts
 
-echo "[Info] Setting up environment..."
-if  echo "-- UserXsaFile: $UserXsaFile" && \
-    [ -f $UserXsaFile ]                 && \
-    echo "-- UserDtsFile: $UserDtsFile" && \
-    [ -f $UserDtsFile ]
-then
-    echo "[WARNING] Remember to mount-copy first."
-else
-    echo "[Error] Invalid input!!!"
-    return 255
-fi
+# setup sd card paritions
+format-sdc () {
+    read -p "[WARNING] formatting $1, press Enter to continue..."
 
-# copy original dts, put dts files into, mount the copied directory
-#   $1: dts directory
-#   $2: dts copy directory
-mount-copy-one () {
-    sudo umount -q $1
-    mkdir -p $BuildDir
-    rm -rf $2 && cp -rL $1 $2 && chmod -R a+rwX $2
-    sudo mount --bind $2 $1
+    # -b: block device file
+    [ -b $1 ] && \
+    sudo sfdisk $1 < $SourcesDir/scripts/boot/sdc.sfdisk && \
+    sudo mkfs.vfat -n BOOT   ${1}1 && \
+    sudo mkfs.ext4 -L RootFS ${1}2
 }
 
-mount-copy () {
-    case $1 in
-    uboot)
-        mount-copy-one $UBootDtsDir  $BuildDir/dts-uboot-copy
-    ;;
-    kernel)
-        mount-copy-one $KernelDtsDir $BuildDir/dts-kernel-copy
-    ;;
-    *)
-        mount-copy-one $UBootDtsDir  $BuildDir/dts-uboot-copy && \
-        mount-copy-one $KernelDtsDir $BuildDir/dts-kernel-copy
-    esac
+copy-uboot-config () {
+    [ -f $1/zynq_user_defconfig ] && cp -v $1/zynq_user_defconfig $UBootPath/configs
+    [ -f $1/zynq-user.h ]         && cp -v $1/zynq-user.h         $UBootPath/include/configs
+    [ -f $1/zynq-user-uboot.dts ] && cp -v $1/zynq-user-uboot.dts $UBootDtsDir
 }
 
-umount-copy () {
-    sudo umount -q $UBootDtsDir $KernelDtsDir
-}
-
-# copy dts files to dts source directory
+# copy dts files to dts source directory, rsync can deal with the symbol link in target directory.
 copy-dts () {
     case $1 in
     uboot)
-        sudo cp -rfv \
+        # $SourcesDir/scripts/boot/user/zynq-user-uboot.dts
+        rsync -K -a \
             $BuildDir/dts/* \
             $SourcesDir/scripts/zynq-user-common.dtsi \
-            $SourcesDir/scripts/zynq-user-uboot.dts \
             $UBootDtsDir
     ;;
     kernel)
-        sudo cp -rfv \
+        rsync -K -a \
             $BuildDir/dts/* \
             $SourcesDir/scripts/zynq-user-common.dtsi \
             $UserDtsFile \
@@ -80,9 +72,11 @@ config-source () {
         code $UBootDtsDir/Makefile
         read -p "[Info] Press Enter to continue..."
 
+        # zynq_ares_7020_uboot_defconfig
+        # xilinx_zynq_virt_defconfig
         cd $UBootPath
         make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
-        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zynq_ares_7020_uboot_defconfig && \
+        make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_virt_defconfig && \
         make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
         cd -
     ;;
@@ -90,6 +84,7 @@ config-source () {
         code $KernelDtsDir/Makefile
         read -p "[Info] Press Enter to continue..."
         
+        # zynq_ares_7020_kernel_defconfig
         cd $KernelPath
         make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
         make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_defconfig && \
@@ -97,6 +92,24 @@ config-source () {
         cd -
     ;;
     esac
+}
+
+# revert dtb to dts
+dump-dtb () {
+    local name=$(basename $1 .dtb)
+    dtc -I dtb -O dts -o $name-dump.dts $1
+}
+
+# clean source tree by git
+clean-git () {
+    cd $1
+    git restore .
+    git clean -f -d
+    cd -
+}
+clean-all-sources () {
+    clean-git $UBootPath
+    clean-git $KernelPath
 }
 
 build-xlnx () {
@@ -121,21 +134,4 @@ build-xlnx () {
         deploy.sh
     ;;
     esac
-}
-
-dump-dtb () {
-    local name=$(basename $1 .dtb)
-    dtc -I dtb -O dts -o $name-dump.dts $1
-}
-
-clean-git () {
-    cd $1
-    git restore .
-    git clean -f -d
-    cd -
-}
-
-clean-all-sources () {
-    clean-git $UBootPath
-    clean-git $KernelPath
 }

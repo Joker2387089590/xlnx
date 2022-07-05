@@ -60,11 +60,16 @@
 };
 
 &gem0 {
+	phy-handle = <&ethernet_phy>;
     local-mac-address = [00 0a 35 00 1e 53];
+    ethernet_phy: ethernet-phy@1 {          /* yt8521*/
+		reg = <0x7>;
+		device_type = "ethernet-phy";
+	};
 };
 
-&uart1 {
-	status = "okay";
+&uart0 {
+	u-boot,dm-pre-reloc;
 };
 
 &sdhci0 {
@@ -72,6 +77,7 @@
 };
 
 &qspi {
+	u-boot,dm-pre-reloc;
     flash0: flash@0 {
         compatible = "n25q512a","micron,m25p80";
         reg = <0x0>;

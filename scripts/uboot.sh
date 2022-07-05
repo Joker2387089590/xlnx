@@ -12,23 +12,24 @@ if [ ! -d $BuildDir/peta ]; then
     petalinux-create --type project --template zynq --name peta
     cd -
 fi
+
 cd $BuildDir/peta
 petalinux-config --get-hw-description $XsaFile
 cd -
 
 # build BOOT.BIN
 rm -rf $BuildDir/boot-bin && mkdir -p $BuildDir/boot-bin
-cp -v \
-    $SourcesDir/scripts/boot.scr \
+cp -vf \
     $BuildDir/fsbl/executable.elf \
     $BuildDir/uboot/u-boot.elf \
-    $BuildDir/uboot/arch/arm/dts/zynq-ares-7020-uboot.dtb \
+    $BuildDir/uboot/arch/arm/dts/zynq-user-uboot.dtb \
     $BuildDir/boot-bin
+
 cd $BuildDir/boot-bin
 petalinux-package --boot --force \
     --project $BuildDir/peta \
     --fsbl    executable.elf \
     --u-boot  u-boot.elf \
-    --dtb     zynq-ares-7020-uboot.dtb \
+    --dtb     zynq-user-uboot.dtb \
     -o        BOOT.BIN
 cd -

@@ -1,7 +1,8 @@
 # build kernel
 cd $KernelPath
-make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- DEVICE_TREE=zynq-user-kernel zImage -j16 && \
-make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j16
+# CROSS_COMPILE=arm-linux-gnueabihf-
+make O=$BuildDir/kernel ARCH=arm LLVM=1 DEVICE_TREE=zynq-user-kernel -j16 && \
+make O=$BuildDir/kernel ARCH=arm LLVM=1 dtbs -j16
 cd -
 
 # put all products together
