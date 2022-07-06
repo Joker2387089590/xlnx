@@ -61,11 +61,11 @@
 
 &gem0 {
 	phy-handle = <&ethernet_phy>;
-    local-mac-address = [00 0a 35 00 1e 53];
-    ethernet_phy: ethernet-phy@1 {          /* yt8521*/
-		reg = <0x7>;
-		device_type = "ethernet-phy";
-	};
+    local-mac-address = [00 0a 35 00 00 00];
+    ethernet_phy: ethernet-phy@1 {         
+        reg = <0x1>; // rtl8211e
+        device_type = "ethernet-phy";
+    };
 };
 
 &uart0 {

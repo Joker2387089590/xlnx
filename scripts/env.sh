@@ -51,13 +51,13 @@ copy-dts () {
     case $1 in
     uboot)
         # $SourcesDir/scripts/boot/user/zynq-user-uboot.dts
-        rsync -K -a \
+        rsync -K -a -v \
             $BuildDir/dts/* \
             $SourcesDir/scripts/zynq-user-common.dtsi \
             $UBootDtsDir
     ;;
     kernel)
-        rsync -K -a \
+        rsync -K -a -v \
             $BuildDir/dts/* \
             $SourcesDir/scripts/zynq-user-common.dtsi \
             $UserDtsFile \
@@ -100,6 +100,11 @@ dump-dtb () {
     dtc -I dtb -O dts -o $name-dump.dts $1
 }
 
+# generate compile-command.json, which can be used by clangd
+make-compile () {
+    $SourcesDir/scripts/kernel/generate_compdb.py $1 $BuildDir/kernel -O $1
+}
+
 # clean source tree by git
 clean-git () {
     cd $1
@@ -107,31 +112,29 @@ clean-git () {
     git clean -f -d
     cd -
 }
-clean-all-sources () {
-    clean-git $UBootPath
-    clean-git $KernelPath
-}
 
 build-xlnx () {
     case $1 in
     dts | uboot | kernel | deploy)
         $1.sh
     ;;
-    all)
-        dts.sh
-        copy-dts uboot && copy-dts kernel
-        config-source uboot
-        uboot.sh
-        config-source kernel
-        kernel.sh
-        deploy.sh
+    *)
+        echo "[ERROR] No such build step!"
     ;;
-    redo)
+    esac
+}
+
+rebuild-xlnx () {
+    case $1 in
+    uboot)
         dts.sh
-        copy-dts uboot && copy-dts kernel
+        copy-dts uboot
         uboot.sh
+    ;;
+    kernel)
+        dts.sh
+        copy-dts kernel
         kernel.sh
-        deploy.sh
     ;;
     esac
 }

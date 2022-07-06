@@ -58,25 +58,28 @@ $ copy-dts uboot && copy-dts kernel
 
 ### 6. 配置 U-Boot
 1. 执行命令
-    ```shell
-    $ config-source uboot # 会调用 VSCode 打开 Makefile
-    > [Info] Press Enter to continue...
-    ```
+```shell
+$ config-source uboot # 会调用 VSCode 打开 Makefile
+> [Info] Press Enter to continue...
+```
+
 2. 修改 Makefile，添加 `zynq-user-uboot.dtb` 到 `dtb-$(CONFIG_ARCH_ZYNQ)` 中
-    ```diff
-    dtb-$(CONFIG_ARCH_ZYNQ) += \
-        bitmain-antminer-s9.dtb \
-        ...
-    -   zynq-zybo-z7.dtb
-    +   zynq-zybo-z7.dtb \
-    +   zynq-user-uboot.dtb
-    ```
+```diff
+dtb-$(CONFIG_ARCH_ZYNQ) += \
+    bitmain-antminer-s9.dtb \
+    ...
+-   zynq-zybo-z7.dtb
++   zynq-zybo-z7.dtb \
++   zynq-user-uboot.dtb
+```
+
 3. 修改好以后，回车继续，会打开 `menuconfig`，可手动修改配置
 
 ### 7. 编译 U-Boot 和 BOOT.BIN
 ```shell
 $ build-xlnx uboot
 ```
+
 期间会在 $BuildDir/peta 创建并配置一个 petalinux 项目，弹出配置界面时退出即可
 
 ### 8. 配置 Linux 内核

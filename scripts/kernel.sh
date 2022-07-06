@@ -6,7 +6,7 @@ make O=$BuildDir/kernel ARCH=arm LLVM=1 dtbs -j16
 cd -
 
 # put all products together
-rm -rf $BuildDir/product && mkdir -p $BuildDir/product
+rm -rfv $BuildDir/product && mkdir -p $BuildDir/product
 cp -v \
     $BuildDir/kernel/arch/arm/boot/dts/zynq-user-kernel.dtb \
     $BuildDir/product/system.dtb
