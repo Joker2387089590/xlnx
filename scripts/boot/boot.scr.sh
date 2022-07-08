@@ -32,3 +32,4 @@ echo "Booting Linux Kernel......"
 bootz ${kernel_address} - ${device_tree_address};
 
 echo "Can't boot linux!"
+# load mmc 0:1 0x01000000 system.bit && fpga loadb 0 0x01000000 ${filesize} && load mmc 0:1 0x02000000 system.dtb && load mmc 0:1 0x03000000 zImage && bootz 0x03000000 - 0x02000000
