@@ -2,8 +2,8 @@
 
 # build u-boot
 cd $UBootPath
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- DEVICE_TREE=zynq-user-uboot -j16 && \
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j16
+make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- DEVICE_TREE=zynq-user-uboot -j$(nproc) && \
+make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j$(nproc)
 cd -
 
 # create and config petalinux project

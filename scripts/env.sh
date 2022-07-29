@@ -29,6 +29,15 @@ export KernelDtsDir=$KernelPath/arch/arm/boot/dts
 # add scripts to PATH so that we can call them directly by 'xxx.sh'
 export PATH=$PATH:$SourcesDir/scripts
 
+clean-dir () {
+    cd $1 && rm -rfv $(ls -A) && cd -
+}
+
+set-dir-mode () {
+    sudo chown joker:share-petalinux -R .
+    sudo chmod -R ug+wrX .
+}
+
 # setup sd card paritions
 format-sdc () {
     read -p "[WARNING] formatting $1, press Enter to continue..."
@@ -40,35 +49,18 @@ format-sdc () {
     sudo mkfs.ext4 -L RootFS ${1}2
 }
 
-copy-uboot-config () {
-    [ -f $1/zynq_user_defconfig ] && cp -v $1/zynq_user_defconfig $UBootPath/configs
-    [ -f $1/zynq-user.h ]         && cp -v $1/zynq-user.h         $UBootPath/include/configs
-    [ -f $1/zynq-user-uboot.dts ] && cp -v $1/zynq-user-uboot.dts $UBootDtsDir
-}
-
-# copy dts files to dts source directory, rsync can deal with the symbol link in target directory.
-copy-dts () {
+uboot-do () {
     case $1 in
-    uboot)
-        # $SourcesDir/scripts/boot/user/zynq-user-uboot.dts
+    copy)
+        [ -f $1/zynq_user_defconfig ] && cp -vf $1/zynq_user_defconfig $UBootPath/configs
+        [ -f $1/zynq-user.h ]         && cp -vf $1/zynq-user.h         $UBootPath/include/configs
+        [ -f $1/zynq-user-uboot.dts ] && cp -vf $1/zynq-user-uboot.dts $UBootDtsDir
         rsync -K -a -v \
             $BuildDir/dts/* \
             $SourcesDir/scripts/zynq-user-common.dtsi \
             $UBootDtsDir
     ;;
-    kernel)
-        rsync -K -a -v \
-            $BuildDir/dts/* \
-            $SourcesDir/scripts/zynq-user-common.dtsi \
-            $UserDtsFile \
-            $KernelDtsDir
-    ;;
-    esac
-}
-
-config-source () {
-    case $1 in
-    uboot)
+    config)
         code $UBootDtsDir/Makefile
         read -p "[Info] Press Enter to continue..."
 
@@ -80,16 +72,66 @@ config-source () {
         make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
         cd -
     ;;
-    kernel)
+    build)
+        uboot.sh
+    ;;
+    *)
+        echo "[ERROR] No such uboot task!"
+    ;;
+    esac
+}
+
+kernel-do () {
+    case $1 in
+    copy-dts)
+        rsync -K -a -v \
+            $BuildDir/dts/* \
+            $SourcesDir/scripts/zynq-user-common.dtsi \
+            $UserDtsFile \
+            $KernelDtsDir
+    ;;
+    config)
         code $KernelDtsDir/Makefile
         read -p "[Info] Press Enter to continue..."
         
         # zynq_ares_7020_kernel_defconfig
         cd $KernelPath
-        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean && \
-        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- xilinx_zynq_defconfig && \
-        make O=$BuildDir/kernel ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 distclean && \
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 xilinx_zynq_defconfig && \
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 menuconfig
         cd -
+    ;;
+    cdb)
+        # generate compile-command.json, which can be used by clangd
+        $SourcesDir/scripts/kernel/generate_compdb.py $BuildDir/kernel $2 -O $2
+    ;;
+    ko)
+        cd $KernelPath
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 INSTALL_MOD_PATH=$2 modules_install
+        cd -
+    ;;
+    esac
+}
+
+# copy dts files to dts source directory, rsync can deal with the symbol link in target directory.
+copy-dts () {
+    case $1 in
+    uboot)
+        uboot-do copy
+    ;;
+    kernel)
+        kernel-do copy-dts
+    ;;
+    esac
+}
+
+config-source () {
+    case $1 in
+    uboot)
+        uboot-do config
+    ;;
+    kernel)
+        kernel-do config
     ;;
     esac
 }
@@ -100,9 +142,8 @@ dump-dtb () {
     dtc -I dtb -O dts -o $name-dump.dts $1
 }
 
-# generate compile-command.json, which can be used by clangd
 make-compile () {
-    $SourcesDir/scripts/kernel/generate_compdb.py $1 $BuildDir/kernel -O $1
+    kernel-do cdb $1
 }
 
 # clean source tree by git
@@ -116,12 +157,16 @@ clean-git () {
 build-xlnx () {
     case $1 in
     dts | uboot | kernel | deploy)
-        $1.sh
+        source $1.sh
     ;;
     *)
         echo "[ERROR] No such build step!"
     ;;
     esac
+}
+
+install-ko () {
+    kernel-do ko $1
 }
 
 rebuild-xlnx () {

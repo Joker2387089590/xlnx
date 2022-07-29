@@ -4,3 +4,5 @@ CMakeLists.txt.user*
 .Xil/*
 .vscode-ctags*
 .vscode
+.cache
+compile_commands.json
