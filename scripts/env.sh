@@ -1,11 +1,11 @@
 # check input
 echo "[INFO] Setting up environment..."
 if  echo "--- UserXsaFile: $UserXsaFile" && \
-    [ -f $UserXsaFile ]                  && \
+    [ -f "$UserXsaFile" ]                && \
     echo "--- UserDtsFile: $UserDtsFile" && \
-    [ -f $UserDtsFile ]                  && \
+    [ -f "$UserDtsFile" ]                && \
     echo "---  SourcesDir: $SourcesDir"  && \
-    [ -d $SourcesDir ]
+    [ -d "$SourcesDir" ]
 then
     echo "[INFO] Remember to source PetaLinux's settings.sh"
 else
@@ -16,6 +16,7 @@ fi
 # file name
 export XsaName=$(basename $UserXsaFile .xsa)
 export DtsName=$(basename $UserDtsFile .dts)
+
 export XsaFile=$BuildDir/hw/$XsaName.xsa
 
 # sources path
@@ -84,20 +85,38 @@ uboot-do () {
 kernel-do () {
     case $1 in
     copy-dts)
-        rsync -K -a -v \
+        rsync -K -rl -v \
             $BuildDir/dts/* \
             $SourcesDir/scripts/zynq-user-common.dtsi \
             $UserDtsFile \
             $KernelDtsDir
     ;;
     config)
-        code $KernelDtsDir/Makefile
-        read -p "[Info] Press Enter to continue..."
+        # code $KernelDtsDir/Makefile
+        # read -p "[Info] Press Enter to continue..."
         
-        # zynq_ares_7020_kernel_defconfig
+        # append custom kernel config to xilinx_zynq_defconfig
+        if [ -f "$UserKernelConfig" ]
+        then
+            export ConfigName=$(basename $UserKernelConfig)
+            cd $KernelPath/arch/arm/configs
+            cp -fv xilinx_zynq_defconfig $ConfigName
+            cat $UserKernelConfig >> $ConfigName
+            cd -
+        else
+            # zynq_ares_7020_kernel_defconfig
+            export ConfigName=xilinx_zynq_defconfig
+        fi
+
+        echo "[INFO] using config: $ConfigName"
         cd $KernelPath
         make O=$BuildDir/kernel ARCH=arm LLVM=1 distclean && \
-        make O=$BuildDir/kernel ARCH=arm LLVM=1 xilinx_zynq_defconfig && \
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 $ConfigName && \
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 menuconfig
+        cd -
+    ;;
+    menuconfig)
+        cd $KernelPath
         make O=$BuildDir/kernel ARCH=arm LLVM=1 menuconfig
         cd -
     ;;
