@@ -4,7 +4,7 @@
 #include "pcw.dtsi"
 
 / {
-    model = "Greentest ZYNQ MiniBoard Mux Controller Project";
+    model = "Joker ZYNQ SPI Project";
 
     aliases {
         eth0    = &gem0;
@@ -19,23 +19,62 @@
 
     leds {
         compatible = "gpio-leds";
+
         ps-led {
             label = "ps-led";
-            gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
             linux,default-trigger = "heartbeat";
+        };
+
+        ps-led0 {
+            label = "0-ps-led";
+            gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;
+            default-state = "on";
+        };
+
+        ps-led1 {
+            label = "1-ps-led";
+            gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+            default-state = "on";
         };
     };
 
     keys {
         compatible = "gpio-keys";
         autorepeat;
-        ps-key {
-			label = "ps-key";
+
+        ps-key0 {
+			label = "0-ps-key";
 			gpios = <&gpio0 12 GPIO_ACTIVE_LOW>;
 			linux,code = <103>; // Up
 			debounce-interval = <20>;
 		};
+
+		ps-key1 {
+			label = "1-ps-key0";
+			gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+			linux,code = <108>; // Down
+			debounce-interval = <20>;
+		};
     };
+};
+
+&gem0 {
+	phy-handle = <&ethernet_phy>;
+    local-mac-address = [00 0a 35 00 00 00];
+    ethernet_phy: ethernet-phy@1 {
+        // reg = <0x1>; // RTL8211E
+        reg = <0x7>;    // YT8521S
+        device_type = "ethernet-phy";
+    };
+};
+
+&uart0 {
+	u-boot,dm-pre-reloc;
+};
+
+&sdhci0 {
+	u-boot,dm-pre-reloc;
 };
 
 &qspi {
@@ -63,30 +102,4 @@
             reg = <0x00fa0000 0x00000000>;
         };
     };
-};
-
-&flash0 {
-	compatible = "w25q256";
-};
-
-&gem0 {
-	phy-handle = <&ethernet_phy>;
-    local-mac-address = [00 0a 35 00 00 00];
-    ethernet_phy: ethernet-phy@7 {
-        // reg = <0x1>; // RTL8211E
-        reg = <0x7>;    // YT8521S
-        device_type = "ethernet-phy";
-    };
-};
-
-&sdhci0 {
-	u-boot,dm-pre-reloc;
-};
-
-&uart0 {
-	u-boot,dm-pre-reloc;
-};
-
-&flash0 {
-	compatible = "w25q256";
 };

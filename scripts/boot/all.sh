@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# input
+### input
 if [ ! -d $SourcesDir ]
 then
     echo "[ERROR] SourcesDir is not set!!!"
     return 255
 fi
-export UserXsaFile=$SourcesDir/scripts/boot/ps.xsa
+export UserXsaFile=$SourcesDir/scripts/boot/system.xsa
 export BuildDir=$SourcesDir/build/boot
 
 export XsaName=$(basename $UserXsaFile .xsa)
@@ -21,26 +21,32 @@ export UBootDtsDir=$UBootPath/arch/arm/dts
 # add scripts to PATH so that we can call them directly by 'xxx.sh'
 export PATH=$PATH:$SourcesDir/scripts
 
+### start build.....
+
+rm -rf $BuildDir && mkdir -p $BuildDir
+
 # # copy xsa file
-# rm -rf $BuildDir/hw && mkdir -p $BuildDir/hw
-# cp -v $UserXsaFile $XsaFile
+mkdir -p $BuildDir/hw
+cp -v $UserXsaFile $XsaFile
 
 # # generate dts
-# rm -rf $BuildDir/dts && mkdir -p $BuildDir/dts
-# xsct $SourcesDir/scripts/boot/dts.tcl
+mkdir -p $BuildDir/dts
+xsct $SourcesDir/scripts/boot/dts.tcl
 
 # # generate fsbl
-# rm -rf $BuildDir/fsbl && mkdir -p $BuildDir/fsbl
-# xsct $SourcesDir/scripts/boot/fsbl.tcl
+mkdir -p $BuildDir/fsbl
+xsct $SourcesDir/scripts/boot/fsbl.tcl
 
 # copy custom content
-export CustomDir=$SourcesDir/scripts/boot/user
+export CustomDir=$SourcesDir/scripts/boot/new
 [ -f $CustomDir/zynq_user_defconfig ] && cp -vf $CustomDir/zynq_user_defconfig $UBootPath/configs
 [ -f $CustomDir/zynq-user.h ]         && cp -vf $CustomDir/zynq-user.h         $UBootPath/include/configs
 [ -f $CustomDir/zynq-user-uboot.dts ] && cp -vf $CustomDir/zynq-user-uboot.dts $UBootDtsDir
 rsync -K -a -v --no-perms --no-owner --no-group --no-times \
     $BuildDir/dts/zynq-7000.dtsi \
     $BuildDir/dts/pcw.dtsi \
+    $UBootDtsDir
+cp -vf \
     $SourcesDir/scripts/zynq-user-common.dtsi \
     $UBootDtsDir
 

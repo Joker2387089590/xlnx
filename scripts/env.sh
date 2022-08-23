@@ -58,8 +58,10 @@ uboot-do () {
         [ -f $1/zynq-user-uboot.dts ] && cp -vf $1/zynq-user-uboot.dts $UBootDtsDir
         rsync -K -a -v \
             $BuildDir/dts/* \
-            $SourcesDir/scripts/zynq-user-common.dtsi \
             $UBootDtsDir
+        cp -vf \
+            $SourcesDir/scripts/zynq-user-common.dtsi \
+            $KernelDtsDir
     ;;
     config)
         code $UBootDtsDir/Makefile
@@ -87,14 +89,14 @@ kernel-do () {
     copy-dts)
         rsync -K -rl -v \
             $BuildDir/dts/* \
-            $SourcesDir/scripts/zynq-user-common.dtsi \
             $UserDtsFile \
             $KernelDtsDir
+        rm -f $KernelDtsDir/zynq-user-common.dtsi
+        cp -vf \
+            $SourcesDir/scripts/zynq-user-common.dtsi \
+            $KernelDtsDir
     ;;
-    config)
-        # code $KernelDtsDir/Makefile
-        # read -p "[Info] Press Enter to continue..."
-        
+    copy-config)
         # append custom kernel config to xilinx_zynq_defconfig
         if [ -f "$UserKernelConfig" ]
         then
@@ -107,10 +109,18 @@ kernel-do () {
             # zynq_ares_7020_kernel_defconfig
             export ConfigName=xilinx_zynq_defconfig
         fi
-
+    ;;
+    clean-config)
+        cd $KernelPath
+        make O=$BuildDir/kernel ARCH=arm LLVM=1 distclean
+        cd -
+    ;;
+    config)
+        # code $KernelDtsDir/Makefile
+        # read -p "[Info] Press Enter to continue..."
+        kernel-do copy-config
         echo "[INFO] using config: $ConfigName"
         cd $KernelPath
-        make O=$BuildDir/kernel ARCH=arm LLVM=1 distclean && \
         make O=$BuildDir/kernel ARCH=arm LLVM=1 $ConfigName && \
         make O=$BuildDir/kernel ARCH=arm LLVM=1 menuconfig
         cd -
