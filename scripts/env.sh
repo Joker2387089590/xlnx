@@ -131,6 +131,9 @@ kernel-do () {
         cd -
     ;;
     cdb)
+        $SourcesDir/scripts/kernel/generate_compdb.py $BuildDir/kernel -O .
+    ;;
+    cdbm)
         # generate compile-command.json, which can be used by clangd
         $SourcesDir/scripts/kernel/generate_compdb.py $BuildDir/kernel $2 -O $2
     ;;
