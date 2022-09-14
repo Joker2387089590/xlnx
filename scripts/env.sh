@@ -7,6 +7,7 @@ if  echo "--- UserXsaFile: $UserXsaFile" && \
     echo "---  SourcesDir: $SourcesDir"  && \
     [ -d "$SourcesDir" ]
 then
+    echo "---    BuildDir: $BuildDir (may not exist!)"
     echo "[INFO] Remember to source PetaLinux's settings.sh"
 else
     echo "[ERROR]          ~~~~~~~~~~~~    Invalid input!!!"

@@ -1,11 +1,17 @@
 #!/bin/bash
 
 ### input
-if [ ! -d $SourcesDir ]
+if  echo "SourcesDir: $SourcesDir"                     && \
+    [ -d "$SourcesDir" ]                               && \
+    echo "PetaLinux Install Dir: $PetaLinuxInstallDir" && \
+    [ -d "$PetaLinuxInstallDir" ]
 then
-    echo "[ERROR] SourcesDir is not set!!!"
-    return 255
+    echo "Start build BOOT"
+else
+    echo "[ERROR] Invalid input!!!"
+    exit
 fi
+
 export UserXsaFile=$SourcesDir/scripts/boot/system.xsa
 export BuildDir=$SourcesDir/build/boot
 
@@ -18,12 +24,19 @@ export EmbeddedSW=$SourcesDir/embeddedsw
 export UBootPath=$SourcesDir/u-boot-xlnx
 export UBootDtsDir=$UBootPath/arch/arm/dts
 
+# since clang is not easily configured to compile uboot, 
+# we use the GCC toolchain from PetaLinux tools to solve the problem.
+export XsctDir=$PetaLinuxInstallDir/tools/xsct
+export GccToolchain=$XsctDir/gnu/aarch32/lin/gcc-arm-none-eabi
+export PATH=$XsctDir/bin:$GccToolchain/bin:$PATH
+
 # add scripts to PATH so that we can call them directly by 'xxx.sh'
 export PATH=$PATH:$SourcesDir/scripts
 
 ### start build.....
 
 rm -rf $BuildDir && mkdir -p $BuildDir
+source $PetaLinuxInstallDir/settings.sh
 
 # # copy xsa file
 mkdir -p $BuildDir/hw
@@ -38,33 +51,27 @@ mkdir -p $BuildDir/fsbl
 xsct $SourcesDir/scripts/boot/fsbl.tcl
 
 # copy custom content
-export CustomDir=$SourcesDir/scripts/boot/new
-[ -f $CustomDir/zynq_user_defconfig ] && cp -vf $CustomDir/zynq_user_defconfig $UBootPath/configs
-[ -f $CustomDir/zynq-user.h ]         && cp -vf $CustomDir/zynq-user.h         $UBootPath/include/configs
-[ -f $CustomDir/zynq-user-uboot.dts ] && cp -vf $CustomDir/zynq-user-uboot.dts $UBootDtsDir
-rsync -K -a -v --no-perms --no-owner --no-group --no-times \
-    $BuildDir/dts/zynq-7000.dtsi \
-    $BuildDir/dts/pcw.dtsi \
-    $UBootDtsDir
+cp -vf \
+    $SourcesDir/scripts/boot/zynq_user_defconfig \
+    $UBootPath/configs
 cp -vf \
     $SourcesDir/scripts/zynq-user-common.dtsi \
+    $BuildDir/dts/zynq-7000.dtsi \
+    $BuildDir/dts/pcw.dtsi \
+    $SourcesDir/scripts/boot/zynq-user-uboot.dts \
     $UBootDtsDir
 
 cd $UBootPath
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- distclean
 
 # config source
-#   zynq_ares_7020_uboot_defconfig
-#   xilinx_zynq_virt_defconfig
-#   zynq_user_defconfig
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zynq_user_defconfig && \
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- menuconfig
+make O=$BuildDir/uboot zynq_user_defconfig
 
 # build
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- DEVICE_TREE=zynq-user-uboot -j$(nproc) && \
-make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- dtbs -j$(nproc)
+make O=$BuildDir/uboot ARCH=arm CROSS_COMPILE=arm-none-eabi- DEVICE_TREE=zynq-user-uboot -j$(nproc)
+
 cd -
 
+# TODO: replace petalinux project
 # create and config petalinux project
 if [ ! -d $BuildDir/peta ]; then
     mkdir -p $BuildDir && cd $BuildDir
@@ -82,6 +89,7 @@ cp -vf \
     $BuildDir/uboot/u-boot.elf \
     $BuildDir/uboot/arch/arm/dts/zynq-user-uboot.dtb \
     $BuildDir/boot-bin
+
 cd $BuildDir/boot-bin
 petalinux-package --boot --force \
     --project $BuildDir/peta \
